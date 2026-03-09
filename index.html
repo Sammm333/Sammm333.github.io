@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auth Portal — FastAPI Authentication System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #04040f;
+  --surface: #0a0a1f;
+  --border: rgba(255,255,255,0.07);
+  --accent: #6c63ff;
+  --accent2: #ff6584;
+  --accent3: #43e97b;
+  --text: #e8e8f0;
+  --muted: rgba(232,232,240,0.45);
+  --mono: 'DM Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: var(--display); overflow-x: hidden; }
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 1000; opacity: 0.4;
+}
+.grid-bg {
+  position: fixed; inset: 0;
+  background-image: linear-gradient(rgba(108,99,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(108,99,255,0.04) 1px, transparent 1px);
+  background-size: 80px 80px; pointer-events: none;
+}
+.orb { position: fixed; border-radius: 50%; filter: blur(120px); pointer-events: none; opacity: 0.5; }
+.orb-1 { width: 700px; height: 700px; background: radial-gradient(circle, rgba(108,99,255,0.3), transparent); top: -200px; left: -200px; }
+.orb-2 { width: 600px; height: 600px; background: radial-gradient(circle, rgba(255,101,132,0.2), transparent); bottom: -100px; right: -150px; }
+.orb-3 { width: 400px; height: 400px; background: radial-gradient(circle, rgba(67,233,123,0.15), transparent); top: 40%; left: 50%; transform: translateX(-50%); }
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  padding: 20px 60px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(4,4,15,0.7); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { display: flex; align-items: center; gap: 12px; font-size: 18px; font-weight: 700; letter-spacing: -0.5px; }
+.nav-logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 500; letter-spacing: 0.3px; transition: color 0.2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta { background: var(--accent) !important; color: white !important; padding: 9px 20px; border-radius: 8px; font-weight: 600 !important; }
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 120px 40px 80px; position: relative;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.25);
+  border-radius: 100px; padding: 7px 18px; margin-bottom: 36px;
+  font-size: 12px; font-weight: 600; color: #a5a0ff; letter-spacing: 1.5px; text-transform: uppercase;
+  animation: fadeDown 0.8s ease both;
+}
+.badge-dot { width: 7px; height: 7px; background: var(--accent3); border-radius: 50%; box-shadow: 0 0 8px var(--accent3); animation: pulse 2s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+h1 { font-size: clamp(56px, 8vw, 110px); font-weight: 800; line-height: 0.95; letter-spacing: -4px; margin-bottom: 28px; animation: fadeUp 0.8s ease 0.1s both; }
+.h1-line1 { display: block; color: white; }
+.h1-line2 { display: block; background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero-desc { max-width: 560px; font-size: 18px; color: var(--muted); line-height: 1.7; margin-bottom: 48px; font-weight: 400; animation: fadeUp 0.8s ease 0.2s both; }
+.hero-actions { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; justify-content: center; margin-bottom: 80px; animation: fadeUp 0.8s ease 0.3s both; }
+.btn-primary { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, var(--accent), #9c94ff); color: white; text-decoration: none; padding: 15px 32px; border-radius: 12px; font-size: 16px; font-weight: 700; letter-spacing: -0.3px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 8px 32px rgba(108,99,255,0.4); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(108,99,255,0.5); }
+.btn-secondary { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text); text-decoration: none; padding: 15px 32px; border-radius: 12px; font-size: 16px; font-weight: 600; transition: background 0.2s; }
+.btn-secondary:hover { background: rgba(255,255,255,0.1); }
+.terminal { width: 100%; max-width: 700px; background: rgba(10,10,30,0.8); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; animation: fadeUp 0.8s ease 0.4s both; box-shadow: 0 32px 80px rgba(0,0,0,0.6); }
+.terminal-header { display: flex; align-items: center; gap: 8px; padding: 14px 20px; background: rgba(255,255,255,0.04); border-bottom: 1px solid var(--border); }
+.t-dot { width: 12px; height: 12px; border-radius: 50%; }
+.t-red { background: #ff5f57; } .t-yellow { background: #febc2e; } .t-green { background: #28c840; }
+.terminal-title { flex: 1; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.terminal-body { padding: 24px 28px; font-family: var(--mono); font-size: 13px; line-height: 2; }
+.t-comment { color: rgba(255,255,255,0.25); }
+.t-cmd { color: #a5a0ff; }
+.t-cmd::before { content: '$ '; color: var(--accent3); }
+.t-out { color: var(--accent3); }
+.stats { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; max-width: 700px; width: 100%; margin: 32px 0 0; animation: fadeUp 0.8s ease 0.5s both; }
+.stat { flex: 1; padding: 24px; text-align: center; border-right: 1px solid var(--border); }
+.stat:last-child { border-right: none; }
+.stat-num { font-size: 32px; font-weight: 800; letter-spacing: -1px; background: linear-gradient(135deg, white, var(--muted)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.stat-label { font-size: 12px; color: var(--muted); font-weight: 500; margin-top: 4px; letter-spacing: 0.5px; }
+section { max-width: 1100px; margin: 0 auto; padding: 100px 40px; }
+.section-label { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--accent); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 16px; }
+.section-title { font-size: clamp(36px, 4vw, 54px); font-weight: 800; letter-spacing: -2px; line-height: 1.1; margin-bottom: 16px; }
+.section-sub { font-size: 17px; color: var(--muted); max-width: 500px; line-height: 1.7; margin-bottom: 60px; }
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--border); border-radius: 20px; overflow: hidden; }
+.feature-card { background: var(--surface); padding: 36px 32px; transition: background 0.2s; position: relative; overflow: hidden; }
+.feature-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent2)); opacity: 0; transition: opacity 0.3s; }
+.feature-card:hover { background: rgba(108,99,255,0.06); }
+.feature-card:hover::before { opacity: 1; }
+.feature-icon { font-size: 28px; margin-bottom: 16px; }
+.feature-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; letter-spacing: -0.3px; }
+.feature-desc { font-size: 14px; color: var(--muted); line-height: 1.6; font-weight: 400; }
+.tech-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.tech-pill { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 100px; padding: 10px 20px; font-size: 14px; font-weight: 600; transition: border-color 0.2s, background 0.2s; }
+.tech-pill:hover { border-color: rgba(108,99,255,0.4); background: rgba(108,99,255,0.08); }
+.tech-dot { width: 8px; height: 8px; border-radius: 50%; }
+.pricing-card { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 48px; max-width: 480px; position: relative; overflow: hidden; }
+.pricing-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3)); }
+.pricing-badge { display: inline-block; background: rgba(67,233,123,0.12); color: var(--accent3); border: 1px solid rgba(67,233,123,0.25); border-radius: 100px; padding: 5px 14px; font-size: 12px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 24px; }
+.pricing-price { font-size: 72px; font-weight: 800; letter-spacing: -4px; line-height: 1; margin-bottom: 8px; }
+.pricing-price span { font-size: 28px; letter-spacing: -1px; color: var(--muted); }
+.pricing-note { font-size: 14px; color: var(--muted); margin-bottom: 36px; }
+.pricing-features { list-style: none; margin-bottom: 40px; }
+.pricing-features li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 15px; font-weight: 500; }
+.pricing-features li:last-child { border-bottom: none; }
+.check { width: 22px; height: 22px; background: rgba(67,233,123,0.12); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+.terms-box { background: rgba(255,165,0,0.06); border: 1px solid rgba(255,165,0,0.15); border-radius: 16px; padding: 32px 36px; max-width: 700px; }
+.terms-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #ffa500; }
+.terms-list { list-style: none; }
+.terms-list li { font-size: 14px; color: var(--muted); padding: 6px 0; display: flex; gap: 10px; line-height: 1.5; }
+.terms-list li::before { content: '—'; color: rgba(255,165,0,0.5); flex-shrink: 0; }
+footer { border-top: 1px solid var(--border); padding: 40px 60px; display: flex; align-items: center; justify-content: space-between; }
+.footer-left { display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--muted); }
+.footer-right { font-size: 13px; color: var(--muted); font-family: var(--mono); }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
+.reveal { opacity: 0; transform: translateY(32px); transition: opacity 0.7s ease, transform 0.7s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+@media (max-width: 768px) {
+  nav { padding: 16px 24px; } .nav-links { display: none; }
+  .features-grid { grid-template-columns: 1fr; }
+  .stats { flex-direction: column; } .stat { border-right: none; border-bottom: 1px solid var(--border); }
+  footer { flex-direction: column; gap: 16px; text-align: center; }
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon">🔐</div>
+    Auth Portal
+  </div>
+  <ul class="nav-links">
+    <li><a href="#features">Features</a></li>
+    <li><a href="#stack">Stack</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#terms">Terms</a></li>
+    <li><a href="https://github.com/Sammm333/Authorization-authentication" target="_blank">GitHub</a></li>
+    <li><a href="https://lemonsqueezy.com" target="_blank" class="nav-cta">Buy — $20</a></li>
+  </ul>
+</nav>
+
+<div class="hero">
+  <div class="hero-badge"><div class="badge-dot"></div> Production Ready · v1.0.2</div>
+  <h1><span class="h1-line1">Auth Portal</span><span class="h1-line2">for FastAPI</span></h1>
+  <p class="hero-desc">A complete authentication system with JWT, Google OAuth2, Admin Panel, PostgreSQL and Docker. Drop it into your project and ship faster.</p>
+  <div class="hero-actions">
+    <a href="https://lemonsqueezy.com" target="_blank" class="btn-primary">Get it for $20 →</a>
+    <a href="https://github.com/Sammm333/Authorization-authentication" target="_blank" class="btn-secondary">View on GitHub</a>
+  </div>
+  <div class="terminal">
+    <div class="terminal-header">
+      <div class="t-dot t-red"></div><div class="t-dot t-yellow"></div><div class="t-dot t-green"></div>
+      <div class="terminal-title">bash</div>
+    </div>
+    <div class="terminal-body">
+      <div class="t-comment"># Run everything in 3 steps</div>
+      <div class="t-cmd">git clone https://github.com/Sammm333/Authorization-authentication.git</div>
+      <div class="t-cmd">cp backend/.env.example backend/.env</div>
+      <div class="t-cmd">docker compose up --build</div>
+      <div class="t-out">✓ Frontend running on http://localhost</div>
+      <div class="t-out">✓ Backend API on http://localhost/api</div>
+      <div class="t-out">✓ PostgreSQL connected</div>
+      <div class="t-out">✓ Swagger UI at http://localhost/docs</div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">Docker Containers</div></div>
+    <div class="stat"><div class="stat-num">11</div><div class="stat-label">API Endpoints</div></div>
+    <div class="stat"><div class="stat-num">1</div><div class="stat-label">Command to Run</div></div>
+    <div class="stat"><div class="stat-num">$20</div><div class="stat-label">One-time Price</div></div>
+  </div>
+</div>
+
+<section id="features">
+  <div class="reveal">
+    <div class="section-label">// Features</div>
+    <h2 class="section-title">Everything you need<br>to authenticate users</h2>
+    <p class="section-sub">Built with security and developer experience in mind. No shortcuts.</p>
+  </div>
+  <div class="features-grid reveal">
+    <div class="feature-card"><div class="feature-icon">🔑</div><div class="feature-title">JWT Authentication</div><div class="feature-desc">Access tokens (30 min) + refresh tokens (7 days). Auto-renewal built into the frontend.</div></div>
+    <div class="feature-card"><div class="feature-icon">🌐</div><div class="feature-title">Google OAuth2</div><div class="feature-desc">One-click sign in with Google. Powered by Authlib with secure session handling.</div></div>
+    <div class="feature-card"><div class="feature-icon">👑</div><div class="feature-title">Admin Panel</div><div class="feature-desc">Full user management — ban/unban, change roles, delete accounts. Protected dashboard.</div></div>
+    <div class="feature-card"><div class="feature-icon">🛡</div><div class="feature-title">Brute Force Protection</div><div class="feature-desc">Rate limiting on login — max 5 attempts per minute per IP via SlowAPI.</div></div>
+    <div class="feature-card"><div class="feature-icon">🐘</div><div class="feature-title">PostgreSQL</div><div class="feature-desc">Production-ready persistent database managed via SQLAlchemy + Alembic migrations.</div></div>
+    <div class="feature-card"><div class="feature-icon">🐳</div><div class="feature-title">Docker + Nginx</div><div class="feature-desc">3-container setup: frontend, backend, database. Single port (80) via Nginx reverse proxy.</div></div>
+  </div>
+</section>
+
+<section id="stack">
+  <div class="reveal">
+    <div class="section-label">// Tech Stack</div>
+    <h2 class="section-title">Built with the right tools</h2>
+    <p class="section-sub">Modern, battle-tested technologies chosen for performance and developer experience.</p>
+  </div>
+  <div class="tech-grid reveal">
+    <div class="tech-pill"><div class="tech-dot" style="background:#009688"></div> FastAPI</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#336791"></div> PostgreSQL</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#d32f2f"></div> SQLAlchemy</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#6c63ff"></div> JWT</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#4285f4"></div> Google OAuth2</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#2496ed"></div> Docker</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#009900"></div> Nginx</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#ff6b6b"></div> Bcrypt</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#ffd700"></div> SlowAPI</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#a78bfa"></div> Alembic</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#f97316"></div> HTML/CSS/JS</div>
+    <div class="tech-pill"><div class="tech-dot" style="background:#10b981"></div> Swagger UI</div>
+  </div>
+</section>
+
+<section id="pricing">
+  <div class="reveal">
+    <div class="section-label">// Pricing</div>
+    <h2 class="section-title">One-time payment.<br>Yours forever.</h2>
+    <p class="section-sub">No subscriptions. No hidden fees. Buy once, use in all your projects.</p>
+  </div>
+  <div class="pricing-card reveal">
+    <div class="pricing-badge">✓ One-time purchase</div>
+    <div class="pricing-price"><span>$</span>20</div>
+    <div class="pricing-note">Single payment — lifetime access to the source code</div>
+    <ul class="pricing-features">
+      <li><div class="check">✓</div> Full source code (Backend + Frontend)</li>
+      <li><div class="check">✓</div> JWT + Google OAuth2 authentication</li>
+      <li><div class="check">✓</div> Admin Panel with user management</li>
+      <li><div class="check">✓</div> Docker + docker-compose setup</li>
+      <li><div class="check">✓</div> PostgreSQL with Alembic migrations</li>
+      <li><div class="check">✓</div> Nginx reverse proxy config</li>
+      <li><div class="check">✓</div> Postman collection included</li>
+      <li><div class="check">✓</div> Full README with setup guide</li>
+    </ul>
+    <a href="https://lemonsqueezy.com" target="_blank" class="btn-primary" style="width:100%; justify-content:center; text-decoration:none;">Buy Now — $20 →</a>
+  </div>
+</section>
+
+<section id="terms">
+  <div class="reveal">
+    <div class="section-label">// Terms & Conditions</div>
+    <h2 class="section-title">License & Usage</h2>
+    <p class="section-sub">Please read before purchasing.</p>
+  </div>
+  <div class="terms-box reveal">
+    <div class="terms-title">⚠️ Important Terms</div>
+    <ul class="terms-list">
+      <li>This product is a source code template licensed under MIT License.</li>
+      <li>You may use this code in personal and commercial projects.</li>
+      <li>Redistribution or resale of the source code is strictly prohibited.</li>
+      <li>Requires Python 3.10+ and Docker to run.</li>
+      <li>No refunds after the source code has been downloaded.</li>
+      <li>The author is not responsible for any issues arising from use in production.</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-left">
+    <div class="nav-logo-icon" style="width:28px;height:28px;font-size:13px;">🔐</div>
+    Auth Portal · Built by Samvel Khachatryan
+  </div>
+  <div class="footer-right">v1.0.2 · MIT License</div>
+</footer>
+
+<script>
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+reveals.forEach(r => observer.observe(r));
+</script>
+</body>
+</html>
